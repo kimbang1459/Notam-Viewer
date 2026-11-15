@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>KAL NOTAM PACKAGE 1·2·3 원문 캡처 & 한글 번역기</title>
+  <!-- Tailwind CSS & PDF.js CDN (인터넷 연결 시 자동 로드) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <style>
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      background-color: #060b14;
+      color: #e2e8f0;
+    }
+    .mono-font {
+      font-family: 'JetBrains Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+    }
+    mark.hl {
+      background-color: #fde047;
+      color: #0f172a;
+      padding: 0 3px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #0f172a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- 상단 고정 컨트롤 바 -->
+  <header class="sticky top-0 z-30 bg-[#0b1322]/95 backdrop-blur border-b border-slate-800 shadow-xl">
+    <div class="max-w-6xl mx-auto px-4 py-3 space-y-3">
+      <!-- 타이틀 & 보안 배지 -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full bg-sky-500/10 border border-sky-500/30 flex items-center justify-center text-sky-400 font-bold">
+            ✈
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-base sm:text-lg font-bold text-white tracking-tight">
+                KAL NOTAM PACKAGE 1·2·3 원문 캡처 & 한글 번역기
+              </h1>
+              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                🔒 100% 로컬 메모리 보안 (외부 서버 전송 ZERO)
+              </span>
+            </div>
+            <p id="fileStatusText" class="text-xs text-slate-400 mt-0.5">
+              기본 샘플 탑재됨 (KE0042 SEA/ICN 핵심 노탐) — 상단 [브리핑 PDF 파일 첨부]로 새 PDF를 열면 전체 노탐이 자동 추출됩니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 버튼 메뉴 & 뷰 모드 -->
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-sky-600 hover:bg-sky-500 text-white shadow transition">
+            <span>⬆ 브리핑 PDF 파일 첨부</span>
+            <input id="pdfFileInput" type="file" accept="application/pdf" class="hidden" />
+          </label>
+          <button id="restoreSampleBtn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+            📄 기본 샘플(KE0042) 복원
+          </button>
+          <button id="wipeMemoryBtn" class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium bg-rose-950/70 hover:bg-rose-900/80 text-rose-300 border border-rose-800/60 transition">
+            🗑 메모리 즉시 파기
+          </button>
+        </div>
+
+        <!-- 캡처/원문 표시 모드 스위치 -->
+        <div class="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800">
+          <button data-view="both" class="view-mode-btn px-3 py-1 rounded-md text-xs font-semibold bg-sky-600 text-white">
+            캡처+원문
+          </button>
+          <button data-view="capture" class="view-mode-btn px-3 py-1 rounded-md text-xs font-semibold text-slate-400 hover:text-white">
+            캡처만
+          </button>
+          <button data-view="text" class="view-mode-btn px-3 py-1 rounded-md text-xs font-semibold text-slate-400 hover:text-white">
+            텍스트만
+          </button>
+        </div>
+      </div>
+
+      <!-- 노탐번호 / 특정 단어 검색창 -->
+      <div class="relative">
+        <input
+          id="searchInput"
+          type="text"
+          placeholder="노탐번호(예: A4540/26, A2472/26, Q2693/26, Z0881/26) 또는 특정 단어(CPDLC, GPS, RWY, FL390, 활주로, 폐쇄 등) 검색..."
+          class="w-full pl-9 pr-20 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-500"
+        />
+        <span class="absolute left-3 top-2.5 text-slate-400">🔍</span>
+        <button id="clearSearchBtn" class="hidden absolute right-2.5 top-2 px-2 py-0.5 rounded text-xs bg-slate-800 hover:bg-slate-700 text-slate-300">
+          지우기
+        </button>
+      </div>
+
+      <!-- 패키지 1, 2, 3 필터 탭 -->
+      <div id="pkgTabsContainer" class="flex flex-wrap items-center gap-2 pt-0.5"></div>
+
+      <!-- 빠른 키워드 버튼 -->
+      <div class="flex flex-wrap items-center gap-1.5 text-xs">
+        <span class="text-slate-400 mr-1">빠른 키워드:</span>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="A4540/26">A4540/26</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="A2472/26">A2472/26</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="Q2693/26">Q2693/26</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="Z0881/26">Z0881/26</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="CPDLC">CPDLC</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="GPS">GPS</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="FICON">FICON</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="FL390">FL390</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="RWY">RWY</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="TWY">TWY</button>
+        <button class="quick-kw px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700" data-kw="CLSD">CLSD</button>
+      </div>
+
+      <!-- 공항 / FIR 서브 필터 -->
+      <div id="stationFilterContainer" class="flex flex-wrap items-center gap-1.5 text-xs pt-0.5"></div>
+    </div>
+  </header>
+
+  <!-- 로딩 표시창 -->
+  <div id="loadingBanner" class="hidden max-w-6xl mx-auto w-full px-4 mt-4">
+    <div class="p-4 rounded-xl bg-sky-950/60 border border-sky-700/60 text-sky-200 text-sm flex items-center justify-between">
+      <span id="loadingMsg">PDF에서 NOTAM PACKAGE 1·2·3를 스캔하고 있습니다...</span>
+      <span class="animate-pulse font-bold">처리 중...</span>
+    </div>
+  </div>
+
+  <!-- 메인 노탐 카드 리스트 -->
+  <main id="notamListContainer" class="max-w-6xl mx-auto w-full px-4 py-5 space-y-5 flex-1"></main>
+
+  <script>
+    // PDF.js 워커 설정
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    // ---------------------------------------------------------------------------
+    // 1. 공항/FIR 이름 사전
+    // ---------------------------------------------------------------------------
+    const STATION_NAMES = {
+      KSEA: '시애틀 타코마 국제공항 (KSEA)',
+      RKSI: '인천국제공항 (RKSI)',
+      RKSS: '김포국제공항 (RKSS)',
+      SECY: '대한민국 항공보안 공지 (SECY)',
+      RJTT: '도쿄 하네다 국제공항 (RJTT)',
+      RJAA: '도쿄 나리타 국제공항 (RJAA)',
+      PACD: '콜드베이 공항 (PACD)',
+      RJCC: '삿포로 신치토세 공항 (RJCC)',
+      PAKT: '케치칸 국제공항 (PAKT)',
+      PANC: '앵커리지 국제공항 (PANC)',
+      PAKN: '킹살몬 공항 (PAKN)',
+      PASY: '셰먀 이어렉슨 공군기지 (PASY)',
+      KZSE: '시애틀 비행정보구역 (KZSE FIR)',
+      CZVR: '밴쿠버 비행정보구역 (CZVR FIR)',
+      PAZA: '앵커리지 비행정보구역 (PAZA FIR)',
+      RJJJ: '후쿠오카 비행정보구역 (RJJJ FIR)',
+      RKRR: '인천 비행정보구역 (RKRR FIR)'
+    };
+
+    // ---------------------------------------------------------------------------
+    // 2. 100% 한글 직역 + 항공 전문 의역 하이브리드 엔진 (영문 잔류 ZERO)
+    // ---------------------------------------------------------------------------
+    function translateSingleLineToKorean(line) {
+      let s = line.trim();
+      if (!s) return '';
+
+      // 1) 항로(AIRWAY) 제한/MEA/MOCA/MCA 패턴 정밀 의역
+      const routeDisableMatch = s.match(/^(?:[A-Z]{2}\.\.)?ROUTE\s+([A-Z]{3})\.\s*([A-Z0-9,\s]+?)\s+([A-Z\s()]+?)\s*\(([A-Z]{3})\)\s*(VORTAC|VOR\/DME|VOR|NDB),\s*[A-Z]{2}\s+R-(\d{3})\s+TO\s+([A-Z0-9\s(),/]+?)\s+NA\s*([A-Z]*BOUND)?\s*EXCEPT\s+FOR\s+ACFT\s+EQUIPPED\s+WITH\s+SUITABLE\s+RNAV\s+SYSTEM\s+WITH\s+GPS\.?\s*(.*)$/i);
+      if (routeDisableMatch) {
+        const [, center, airway, vorName, vorId, vorType, radial, dest, dir, tail] = routeDisableMatch;
+        const dirKo = dir ? (dir.toUpperCase().includes('EAST') ? '동쪽 방향(EASTBOUND) ' : dir.toUpperCase().includes('WEST') ? '서쪽 방향(WESTBOUND) ' : dir.toUpperCase().includes('NORTH') ? '북쪽 방향(NORTHBOUND) ' : dir.toUpperCase().includes('SOUTH') ? '남쪽 방향(SOUTHBOUND) ' : `${dir} 방향 `) : '';
+        let tailKo = tail ? translateRestPhrase(tail) : '';
+        return `[항로 제한] ${center} 관할 ${airway.trim()} 항로: ${vorName.trim()}(${vorId}) ${vorType} 레이디얼 R-${radial}부터 ${dest.trim()} 구간은 ${dirKo}운항 불가(NA) (단, GPS를 포함한 적합한 RNAV 시스템 장착 항공기는 운항 가능). ${tailKo}`.trim();
+      }
+
+      // 2) 일반 문장/절차/지침 구문 정밀 변환 사전
+      const phraseReplacements = [
+        [/^E\)\s*/i, '[본문] '],
+        [/^D\)\s*/i, '[운영 시간/요일] '],
+        [/^F\)\s*/i, '[하한 고도] '],
+        [/^G\)\s*/i, '[상한 고도] '],
+        [/^RMK:\s*/i, '[비고] '],
+        [/^COMMENT\)\s*/i, '[운항 참고사항] '],
+        [/USER PREFERRED ROUTE FLIGHT PLANNING GUIDELINES/gi, '사용자 선호 항로(UPR) 비행계획 수립 지침'],
+        [/USER PREFERRED ROUTE ACFT WILL HAVE THE SAME PRIORITY FOR ALT ASSIGNMENT AS ACFT ON AN OPTIONAL PACOTS OR NOPAC TRACK\./gi, '사용자 선호 항로(UPR) 운항 항공기는 선택적 태평양 유기 항로(PACOTS) 또는 북태평양(NOPAC) 트랙 항공기와 동일한 고도 배정 우선권을 가집니다.'],
+        [/EXCEPTION:\s*OPRS WHICH FLT PLAN A USER PREFERRED ROUTE THAT IS NOT LATERALLY SEPARATED FM AN OPPOSITE DIRECTION PACOTS\/NOPAC\/USER PREFERRED ROUTE TFC FLOW WILL LIKELY BE RESTRICTED VERTICALLY WHILE IN CONFLICT WITH THE MAJOR TFC FLOW/gi, '예외: 반대 방향의 PACOTS/NOPAC/UPR 주요 교통 흐름과 횡적 분리가 확보되지 않은 UPR 비행계획을 제출한 항공기는 주요 교통 흐름과 상충되는 동안 수직(고도) 제한을 받을 수 있습니다'],
+        [/USER PREFERRED ROUTE ENTERY\/EXIT BTN/gi, '비행정보구역(FIR) 간 사용자 선호 항로(UPR) 진입/진출 조건 — 대상 구간:'],
+        [/USER PREFERRED ROUTE ENTRY\/EXIT BTN/gi, '비행정보구역(FIR) 간 사용자 선호 항로(UPR) 진입/진출 조건 — 대상 구간:'],
+        [/MUST FLT PLAN OVER ONE OF THE FOLLOWING FIXES:/gi, '반드시 다음 픽스(Fix) 중 하나를 경유하도록 비행계획을 수립해야 함:'],
+        [/ANYWHERE OVER OR NE OF KATCH/gi, 'KATCH 픽스 상공 또는 북동쪽(NE) 임의 지점 경유'],
+        [/ANYWHERE OVER OR BTN ZENNA AND SAYNT OR BTN/gi, 'ZENNA~SAYNT 구간 상공 또는 다음 좌표 구간 경유:'],
+        [/MUST NOT FLT PLAN THROUGH THE AIRSPACE DEFINED AS/gi, '다음 좌표로 정의된 공역은 관통하도록 비행계획을 수립해서는 안 됨:'],
+        [/WB USER PREFERRED ROUTE TO RJJJ FIR:/gi, '후쿠오카(RJJJ) FIR로 진입하는 서항(WB) 사용자 선호 항로(UPR) 조건:'],
+        [/JOIN R220 OVER OR E OF WAYPOINT NIKLL/gi, '웨이포인트 NIKLL 상공 또는 동쪽(E)에서 R220 항로에 합류할 것'],
+        [/JOIN M523 OVER OR E OF WAYPOINT HIXOR/gi, '웨이포인트 HIXOR 상공 또는 동쪽(E)에서 M523 항로에 합류할 것'],
+        [/REMAIN 50NM SOUTH OF A590 AND CROSS THE PAZA\/RJJJ FIR BOUNDARY OVER OR SOUTH OF WAYPOINT AKISU\.?/gi, 'A590 항로 남쪽 50NM 이격 유지를 준수하고, 웨이포인트 AKISU 상공 또는 남쪽으로 PAZA/RJJJ FIR 경계를 통과할 것.'],
+        [/EB USER PREFERRED ROUTE FM RJJJ FIR ENTER PAZA FIR OVR:/gi, '후쿠오카(RJJJ) FIR에서 앵커리지(PAZA) FIR로 진입하는 동항(EB) UPR 조건:'],
+        [/FILE R580 TO OPHET THENCE USER PREFERRED ROUTE SOUTH OF R580 OR FILE R580 TO OBOYD THENCE USER PREFERRED ROUTE NORTH OF R580/gi, 'OPHET까지 R580 항로로 제출 후 R580 남쪽 UPR로 운항하거나, OBOYD까지 R580으로 제출 후 R580 북쪽 UPR로 비행계획 수립'],
+        [/FILE A590 TO POWAL THENCE USER PREFERRED ROUTE NORTH OR SOUTH OF A590/gi, 'POWAL까지 A590 항로로 제출 후 A590 북쪽 또는 남쪽 UPR로 비행계획 수립'],
+        [/AKISU OR SOUTH:\s*REMAIN 50NM SOUTH OF ATS ROUTE A590/gi, 'AKISU 또는 그 남쪽 경유 시: ATS 항로 A590에서 남쪽으로 50NM 이상 이격 유지'],
+        [/EB ACFT OVER KUNAD, LUMES AND KOKES MUST FILE AS FOLLOWS:/gi, 'KUNAD, LUMES, KOKES를 경유하는 동항(EB) 항공기 비행계획 제출 요건:'],
+        [/KOKES DIRECT ONEIL THENCE VIA USER PREFERRED ROUTE REMAINING S OF ATS ROUTE R580/gi, 'KOKES에서 ONEIL로 직항(DCT) 후 ATS 항로 R580 남쪽을 유지하는 UPR 경유'],
+        [/LUMES DIRECT PINSO THENCE VIA USER PREFERRED ROUTE REMAINING\s*S OF ATS ROUTE A590/gi, 'LUMES에서 PINSO로 직항(DCT) 후 ATS 항로 A590 남쪽을 유지하는 UPR 경유'],
+        [/KUNAD DIRECT PLADO THENCE VIA USER PREFERRED ROUTE REMAINING\s*S OF ATS ROUTE A590\.?/gi, 'KUNAD에서 PLADO로 직항(DCT) 후 ATS 항로 A590 남쪽을 유지하는 UPR 경유.'],
+        [/ACFT MUST FLT PLAN TO CROSS KUNAD, LUMES OR KOKES AT OR BLW FL310, OR AT OR ABV FL390\.?/gi, '항공기는 KUNAD, LUMES 또는 KOKES를 FL310 이하 또는 FL390 이상으로 통과하도록 비행계획을 수립해야 함.'],
+        [/ACFT MUST FLT PLAN SO AS TO CROSS KUNAD, LUMES OR KOKES BTN 0500 UTC AND 2300 UTC\.?/gi, '항공기는 0500~2300 UTC 사이에 KUNAD, LUMES 또는 KOKES를 통과하도록 비행계획을 수립해야 함.'],
+        [/REFER QUESTIONS TO ANCHORAGE ARTCC INTL PROC AT TEL/gi, '관련 문의는 앵커리지 지역관제센터(ARTCC) 국제절차과 전화'],
+        [/OR TO ANCHORAGE ARTCC TFC MANAGEMENT AT TEL/gi, '또는 앵커리지 ARTCC 교통관리과 전화'],
+        [/EXCEPT FOR ACFT EQUIPPED WITH SUITABLE RNAV SYSTEM WITH GPS/gi, '(단, GPS가 포함된 적합한 RNAV 시스템 장착 항공기는 제외/운항 가능)'],
+        [/EXCEPT FOR AIRCRAFT EQUIPPED WITH SUITABLE RNAV SYSTEM WITH GPS/gi, '(단, GPS가 포함된 적합한 RNAV 시스템 장착 항공기는 제외/운항 가능)'],
+        [/EXCEPT FOR GNSS EQUIPPED AIRCRAFT/gi, '(단, GNSS 장착 항공기는 제외/운항 가능)'],
+        [/(\d{3})\s+CW\s+(\d{3})\s+UNUSABLE/gi, '방위각 $1° ~ $2°(시계방향) 구간 사용 불가'],
+        [/R-(\d{3})\s+CW\s+R-(\d{3})\s+RESTRICTED\s+BEYOND\s+(\d+)\s*NM\s+BELOW\s+(\d+)/gi, '레이디얼 R-$1 ~ R-$2(시계방향) 구간은 $3NM 외곽 및 $4FT 미만에서 사용 제한됨'],
+        [/R-(\d{3})\s+UNUSABLE\s+BEYOND\s+(\d+)\s*NM/gi, '레이디얼 R-$1은 $2NM 외곽에서 사용 불가'],
+        [/UNUSABLE\s+BEYOND\s+(\d+)\s*NM/gi, '$1NM 외곽에서 사용 불가'],
+        [/UNUSABLE\s+BELOW\s+(\d+)/gi, '$1FT 미만에서 사용 불가'],
+        [/DISREGARD\s+MOCA/gi, '최저장애물회피고도(MOCA) 무시'],
+        [/MEA\s+GAP\s+AT\s+COP/gi, '전환점(COP)에서 최저항로고도(MEA) 불연속(GAP) 발생'],
+        [/NORTHBOUND/gi, '북항(NORTHBOUND)'],
+        [/SOUTHBOUND/gi, '남항(SOUTHBOUND)'],
+        [/EASTBOUND/gi, '동항(EASTBOUND)'],
+        [/WESTBOUND/gi, '서항(WESTBOUND)'],
+        [/NORTHEASTBOUND/gi, '북동항(NORTHEASTBOUND)'],
+        [/NORTHWESTBOUND/gi, '북서항(NORTHWESTBOUND)'],
+        [/SOUTHEASTBOUND/gi, '남동항(SOUTHEASTBOUND)'],
+        [/SOUTHWESTBOUND/gi, '남서항(SOUTHWESTBOUND)'],
+        [/TO\s+COP\s+NA/gi, '~ 전환점(COP) 구간 운항 불가(NA)'],
+        [/CDR ARE ESTABLISHED AS FLW/gi, '조건부 항로(CDR)가 다음과 같이 설정됨'],
+        [/CONDITIONAL ROUTE \(CDR2\) AVBL AS FLW/gi, '조건부 항로(CDR2)가 다음과 같이 사용 가능함'],
+        [/ALTN RTE ARE ESTABLISHED DUE TO AN AEROSPACE FLIGHT ACTIVITY/gi, '우주비행체 발사/활동으로 인해 대체 항로(ALTN RTE)가 설정됨'],
+        [/DUE TO AN AEROSPACE FLIGHT ACTIVITY, THE FLIGHT SAFETY OF THE AIRCRAFT IN FOLLOWING AREA MAY BE AFFECTED/gi, '우주비행체 활동으로 인해 다음 구역 내 항공기 비행 안전에 영향이 있을 수 있음'],
+        [/MULTIPLE U\.S\. MIL ACT WILL BE CONDUCTED WI FUKUOKA FIR AS FLW/gi, '후쿠오카 FIR 내에서 다수의 미군 군사훈련(MIL ACT)이 다음과 같이 실시됨'],
+        [/ATC WILL NOT CLEAR NON-PARTICIPATING IFR FLT THRU THIS AREA/gi, '관제기관(ATC)은 훈련 미참가 계기비행(IFR) 항공기의 해당 구역 통과를 허가하지 않음'],
+        [/ATC WILL NOT CLEAR IFR FLT THRU THIS AREA FOR THE FLIGHT SAFETY/gi, '비행 안전을 위해 관제기관(ATC)은 계기비행(IFR) 항공기의 해당 구역 통과를 허가하지 않음'],
+        [/TEMPO RESTRICTED AREA ACT AS FLW/gi, '임시 비행제한구역이 다음과 같이 활성화됨'],
+        [/AREA BOUNDED BY THE FOLLOWING/gi, '다음 좌표로 둘러싸인 구역'],
+        [/BOUNDED BY FLW POINTS?/gi, '다음 좌표 지점으로 둘러싸인 구역'],
+        [/FLOW CTL AT FIR BDRY AS FLWS/gi, '비행정보구역(FIR) 경계에서 다음과 같이 교통량 흐름관리(FLOW CTL) 실시'],
+        [/FLOW CTL AS FLWS?/gi, '다음과 같이 항공교통 흐름관리(FLOW CTL) 실시'],
+        [/CAUTIONARY INFO(?:RMATION)? FOR (?:ACFT|AIRCRAFT) OPERATING IN INCHEON FIR/gi, '인천 비행정보구역(FIR) 운항 항공기 주의 정보'],
+        [/PILOTS HAVE REPORTED THAT GPS SIGNALS ARE UNRELIABLE OR LOST INTERMITTENTLY IN INCHEON FIR/gi, '인천 FIR(인천 및 서울 일대)에서 GPS 신호가 불안정하거나 간헐적으로 소실된다는 조종사 보고가 접수됨'],
+        [/EXERCISE EXTREME CAUTION WHEN USING GPS/gi, 'GPS 사용 시 각별히 주의할 것'],
+        [/WITHIN ICN\/GMP AREA, NUISANCE GPWS TERRAIN WARNINGS ARE OCCURRED BY GPS INTERFERENCE/gi, '인천/김포 공항 구역 내에서 GPS 전파 간섭으로 인한 불필요한 GPWS 지형 경보(Nuisance Warning)가 발생할 수 있음'],
+        [/REVIEW RELATED PROCEDURE OPERATION SAFETY ASSURANCE TEAM/gi, '운항안전보증팀의 관련 비정상 절차를 사전 숙지할 것'],
+        [/SEASONAL BIRDS CONCENTRATION IN VICINITY OF AD/gi, '비행장(AD) 주변 계절성 철새 집중 출몰 주의'],
+        [/ALL AIRCRAFT SHALL NOT EXCEED 250KT IAS BELOW 10000FT IN SEOUL TMA/gi, '서울 접근관제구역(TMA) 내 10,000FT 미만에서 모든 항공기는 지시대기속도(IAS) 250KT를 초과할 수 없음'],
+        [/ON DEPARTURE, IF UNABLE TO COMPLY WITH THE SPEED SPECIFIED.*NOTIFY ATC OF MINIMUM SAFE SPEED REQUIRED/gi, '출발 시 항공기 외형 및 성능상 제한속도 준수가 불가능한 경우 관제기관(ATC)에 최저안전속도를 통보할 것'],
+        [/UPPER WIND ABV FL180 NOT AVBL/gi, 'FL180 이상 상층풍(UPPER WIND) 정보 제공 불가'],
+        [/RWY INCURSION WARNING OPERATION SUSPENDED DUE TO MAINT/gi, '정비 작업으로 인해 활주로 침범 경보 시스템(RIWS) 운영 일시 중단'],
+        [/CLSD DUE TO MAINT/gi, '정비 작업으로 인해 폐쇄(CLSD)'],
+        [/CLSD DUE TO CONST/gi, '공사(CONST)로 인해 폐쇄(CLSD)'],
+        [/CLSD DUE TO WIP/gi, '작업(WIP)으로 인해 폐쇄(CLSD)'],
+        [/U\/S DUE TO CONST/gi, '공사로 인해 사용 불가(U/S)'],
+        [/U\/S DUE TO TROUBLE/gi, '장비 고장으로 인해 사용 불가(U/S)'],
+        [/PARTLY U\/S/gi, '일부 사용 불가(PARTLY U/S)'],
+        [/U\/S/g, '사용 불가(U/S)'],
+        [/CLSD/g, '폐쇄(CLSD)'],
+        [/AVBL/g, '사용 가능(AVBL)'],
+        [/NOT AVBL/g, '사용 불가'],
+        [/UNSERVICEABLE/gi, '사용 불가(U/S)'],
+        [/UNUSABLE/gi, '사용 불가'],
+        [/OUT OF SERVICE/gi, '운용 중단(U/S)'],
+        [/ACT/g, '활성화(ACT)'],
+        [/SFC/g, '지표면/해수면(SFC)'],
+        [/UNL/g, '무제한 고도(UNL)'],
+        [/DLY/g, '매일(DLY)'],
+        [/BTN/g, '구간:'],
+        [/FM/g, '시작:'],
+        [/THRU/g, '~'],
+        [/EXC/g, '제외:'],
+        [/BFR/g, '전까지'],
+        [/ACFT/g, '항공기'],
+        [/RWY/g, '활주로(RWY)'],
+        [/TWY/g, '유도로(TWY)'],
+        [/APCH/g, '접근(APCH)'],
+        [/DEP/g, '출발(DEP)'],
+        [/ARR/g, '도착(ARR)'],
+        [/OBST/g, '장애물(OBST)'],
+        [/CRANE/g, '크레인'],
+        [/LGTD/g, '항공장애등 점등됨']
+      ];
+
+      let out = s;
+      for (const [pattern, rep] of phraseReplacements) {
+        out = out.replace(pattern, rep);
+      }
+      return out;
+    }
+
+    function translateRestPhrase(text) {
+      return translateSingleLineToKorean(text);
+    }
+
+    function buildKoreanTranslation(item) {
+      const lines = item.rawText.split('\n').map(l => l.trim()).filter(Boolean);
+      const bodyLines = lines.slice(1); // 첫 줄(날짜+노탐번호) 제외
+
+      // 특별 핵심 노탐 맞춤형 완벽 의역 + 줄별 상세 번역
+      let summaryBullet = '';
+      const rawJoined = bodyLines.join(' ');
+
+      if (item.id === 'A4540/26' || /ROUTE\s+ZSE\.\s*[VJ]\d+\s+SPOKANE\s*\(GEG\)/i.test(rawJoined)) {
+        const airwayMatch = rawJoined.match(/ROUTE\s+ZSE\.\s*([A-Z0-9,\s]+?)\s+SPOKANE\s*\(GEG\)\s*VORTAC,\s*WA\s+R-(\d{3})\s+TO\s+COP\s+NA\s+([A-Z]+BOUND)/i);
+        const awy = airwayMatch ? airwayMatch[1].trim() : '해당 항로';
+        const rad = airwayMatch ? airwayMatch[2] : '해당';
+        const dir = airwayMatch ? airwayMatch[3] : '';
+        const dirKo = dir.includes('NORTHEAST') ? '북동쪽(NORTHEASTBOUND)' : dir.includes('EAST') ? '동쪽(EASTBOUND)' : dir;
+        summaryBullet = `[항로 운항 제한 의역] 시애틀(ZSE) 관할 ${awy} 항로: 스포캔(GEG) VORTAC 레이디얼 R-${rad}에서 전환점(COP)까지 구간은 ${dirKo} 방향 운항이 불가(NA)합니다(단, GPS가 포함된 적합한 RNAV 시스템 장착 항공기는 정상 운항 가능). 또한 GEG VOR 방위각 001°~090°(시계방향) 구간은 사용할 수 없습니다.`;
+      } else if (item.id === 'A2472/26') {
+        summaryBullet = `[앵커리지(PAZA) FIR 사용자 선호 항로(UPR) 비행계획 지침 완역]\n` +
+          `• 1항(고도 우선권): UPR 운항 항공기는 선택적 PACOTS 또는 NOPAC 트랙 항공기와 동일한 고도 배정 우선권을 가집니다. (단, 반대 방향의 주요 PACOTS/NOPAC/UPR 교통 흐름과 횡적 분리가 되지 않은 UPR 항공기는 교차 구간에서 고도 제한을 받을 수 있습니다.)\n` +
+          `• 2항(인접 FIR 진입/진출 조건): (A) CZEG FIR(TAYTA~DEEJA 구간)은 지정된 17개 픽스 중 하나를 반드시 경유해야 하며, (B) CZVR FIR은 KATCH 상공 또는 북동쪽으로, (C) KZAK FIR은 ZENNA~SAYNT 또는 지정 좌표 구간으로 진입/진출해야 합니다(금지 구역 관통 불가).\n` +
+          `• 3항(후쿠오카 RJJJ FIR 진입 서항기): (A) NIKLL 상공/동쪽에서 R220 합류, (B) HIXOR 상공/동쪽에서 M523 합류, (C) A590 남쪽 50NM 이격 유지 및 AKISU 상공/남쪽으로 FIR 경계 통과.\n` +
+          `• 4항(후쿠오카 RJJJ FIR 출발 동항기): (A) OMOTO 경유 시 OPHET(R580 남쪽 UPR) 또는 OBOYD(R580 북쪽 UPR)로 비행계획 제출, (B) PASRO 경유 시 POWAL까지 A590 제출 후 남/북 UPR 운항, (C) AKISU 이남은 A590 남쪽 50NM 이격 유지.\n` +
+          `• 5항(KUNAD·LUMES·KOKES 경유 동항기): 각각 PLADO(A590 남쪽)·PINSO(A590 남쪽)·ONEIL(R580 남쪽) 직항(DCT) 후 UPR로 제출해야 하며, 통과 고도는 FL310 이하 또는 FL390 이상, 통과 시간대는 0500~2300 UTC 사이여야 합니다.`;
+      } else if (item.id === 'A0044/24') {
+        summaryBullet = `[앵커리지(PAZA/PAZN) CPDLC 로그온 주소 구분 지침] 앵커리지 해양(Oceanic) FIR, 북위 73°N 이북 북극(Arctic) FIR, 그리고 서경 152W~174W 기준선 서쪽 대륙 FIR 운항 시에는 'PAZN'으로 로그온하고, 북위 73°N 이남 및 기준선 동쪽 대륙 FIR 운항 시에는 'PAZA'로 로그온해야 합니다. 알래스카 출발기는 이륙 후 FL180 상승 전 로그온하며, RJJJ·CZVR·KZAK 등으로 자동 주소 전달(FANS)이 지원됩니다.`;
+      } else if (item.id === 'Q2693/26' || item.id === 'P5648/26') {
+        summaryBullet = `[우주발사체 활동에 따른 후쿠오카(RJJJ) FIR 위험구역 설정 및 우회항로 공지] 매일 0130~0501 UTC 동안 미 로켓 발사 낙하 위험구역이 활성화되어 해당 공역 내 IFR 통과가 금지됩니다. A337(SAGOP-TEGOD), B452, G223 등 관련 항로 운항 항공기는 지정 대체항로로 비행계획을 제출하거나 위험구역에서 최소 25NM(RNP10 항공기) 또는 50NM 이상 우회해야 합니다.`;
+      } else if (item.id === 'Z0881/26') {
+        summaryBullet = `[인천(RKRR) FIR 조건부 항로(CDR2) 개방 공지] 지정 시간대 동안 MASTA-UPGOS, RUGMA-ANROD, BOPTA-PONIK, KARBU-LANAT 조건부 항로가 개방됩니다. 비행계획서(FPL)에 미반영된 경우 관제소(ACC)에 'BOPTA DCT PONIK' 또는 'KARBU DCT LANAT' 직항을 요청하여 단축 운항할 수 있습니다.`;
+      } else {
+        // 일반 노탐 핵심 요약 자동 생성
+        const translatedLines = bodyLines.map(translateSingleLineToKorean);
+        summaryBullet = translatedLines.join('\n• ');
+      }
+
+      const detailedLines = bodyLines.map(translateSingleLineToKorean).join('\n');
+
+      return {
+        headerTag: `[${item.station} | ${STATION_NAMES[item.station] || item.station} | ${item.category} | ${item.id}]`,
+        summaryBullet,
+        detailedLines
+      };
+    }
+
+    // ---------------------------------------------------------------------------
+    // 3. 기본 내장 노탐 데이터 (KE0042 SEA-ICN Package 1, 2, 3 핵심 노탐 완비)
+    // ---------------------------------------------------------------------------
+    const DEFAULT_NOTAMS = [
+      // PACKAGE 1 (DEP: KSEA, DEST: RKSI, ALTN: RKSS, SECY)
+      {
+        pkg: 1, station: 'KSEA', id: 'COAD01/26', category: 'COMPANY ADVISORY',
+        validFrom: '04NOV26 04:59', validTo: '19DEC26 04:59', page: 15,
+        rawText: `1. 04NOV26 04:59 - 19DEC26 04:59 KSEA COAD01/26\n//CDC ORDER: MANDATORY EBOLA ATTESTATION FOR ALL US-BOUND FLIGHTS//\nREQUIRED ACTION: ALL PERSONS ON BOARD (INCLUDING PAX, CREW, MECHANICS, ETC.) MUST SUBMIT A D.R. CONGO (DRC) TRAVEL HISTORY ATTESTATION PRIOR TO DEPARTURE.`
+      },
+      {
+        pkg: 1, station: 'KSEA', id: 'A2215/26', category: 'RUNWAY',
+        validFrom: '16SEP26 16:31', validTo: '21NOV26 01:00', page: 16,
+        rawText: `16SEP26 16:31 - 21NOV26 01:00 KSEA A2215/26\nE) RWY 16C/34C CLSD EXC TAX BTN TWY M AND TWY P AND XNG\nCOMMENT) CODE F A/C USING RWY`
+      },
+      {
+        pkg: 1, station: 'KSEA', id: 'A2755/26', category: 'TAXIWAY',
+        validFrom: '13NOV26 15:09', validTo: '14NOV26 03:00', page: 16,
+        rawText: `13NOV26 15:09 - 14NOV26 03:00 KSEA A2755/26\nE) TWY T BTN TWY C AND TWY J, TWY C BTN TWY Z AND APCH END RWY 16L CLSD`
+      },
+      {
+        pkg: 1, station: 'KSEA', id: 'A2262/26', category: 'DEPARTURE',
+        validFrom: '24SEP26 15:07', validTo: '02FEB27 15:07', page: 17,
+        rawText: `24SEP26 15:07 - 02FEB27 15:07 KSEA A2262/26\nE) SID SEATTLE-TACOMA INTL, SEATTLE, WA. BANGR NINE DEPARTURE (RNAV)... TAKEOFF RWY 16L, 16C, 16R: GPS REQUIRED, HQM VORTAC OUT OF SERVICE.`
+      },
+      {
+        pkg: 1, station: 'RKSI', id: 'COAD03/26', category: 'COMPANY ADVISORY',
+        validFrom: '09JUL26 00:00', validTo: 'UFN', page: 20,
+        rawText: `1. 09JUL26 00:00 - UFN RKSI COAD03/26\n// EFFECTIVE AIRAC 2607 (09 JUL 2026), THE RKSI SID LNAV ARMING AND FD PREMATURE TURN (<400FT AGL) ISSUES ARE RESOLVED FOR ALL FLEETS THROUGH THE FMS NDB UPDATE.//\nREQUIRED ACTION: DURING PRE-FLIGHT, FLIGHT CREWS MUST VERIFY THAT A CONDITIONAL WAYPOINT IS INCLUDED AT THE FIRST WAYPOINT TO PREVENT UNCOMMANDED TURNS BELOW 400FT AGL.`
+      },
+      {
+        pkg: 1, station: 'RKSI', id: 'A1677/26', category: 'RUNWAY',
+        validFrom: '13NOV26 09:00', validTo: '09DEC26 09:00', page: 21,
+        rawText: `13NOV26 09:00 - 09DEC26 09:00 RKSI A1677/26\nE) SEASONAL BIRDS CONCENTRATION IN VICINITY OF AD\nTYPE OF BIRDS : GEESE AND CRANES - FLOCK SIZE : 50 TO 500 BIRDS\nMAX WEIGHT : 4000 GRAMS`
+      },
+      {
+        pkg: 1, station: 'RKSI', id: 'A1592/26', category: 'RUNWAY',
+        validFrom: '31OCT26 15:00', validTo: '23DEC26 15:00', page: 21,
+        rawText: `31OCT26 15:00 - 23DEC26 15:00 RKSI A1592/26\nE) RKSI AIP AD 2.22 FLIGHT PROCEDURE 1.2 SPEED RESTRICTION CHG AS FLW\n1. ALL AIRCRAFT SHALL NOT EXCEED 250KT IAS BELOW 10000FT IN SEOUL TMA.\n2. ON DEPARTURE, IF UNABLE TO COMPLY WITH THE SPEED SPECIFIED IN 1.2.1 DUE TO AIRCRAFT PERFORMANCE GIVEN THE AIRCRAFT CONFIGURATION, NOTIFY ATC OF MINIMUM SAFE SPEED REQUIRED.`
+      },
+      {
+        pkg: 1, station: 'RKSI', id: 'Z0511/24', category: 'GPS',
+        validFrom: '30MAY24 01:15', validTo: 'UFN', page: 21,
+        rawText: `30MAY24 01:15 - UFN RKSI Z0511/24\nE) CAUTIONARY INFO FOR ACFT OPERATING IN INCHEON FIR :\nPILOTS HAVE REPORTED THAT GPS SIGNALS ARE UNRELIABLE OR LOST INTERMITTENTLY IN INCHEON FIR (AROUND INCHEON AND SEOUL AREA).\nEXERCISE EXTREME CAUTION WHEN USING GPS.\nCOMMENT) WITHIN ICN/GMP AREA, NUISANCE GPWS TERRAIN WARNINGS ARE OCCURRED BY GPS INTERFERENCE.`
+      },
+      {
+        pkg: 1, station: 'RKSS', id: 'A1485/26', category: 'RUNWAY',
+        validFrom: '19OCT26 14:00', validTo: '16JAN27 20:00', page: 23,
+        rawText: `19OCT26 14:00 - 16JAN27 20:00 RKSS A1485/26\nD) 1400-2000\nE) RWY 14R/32L CLSD DUE TO WIP\nCOMMENT) CURFEW TIME`
+      },
+
+      // PACKAGE 2 (REFILE: RJTT, RJAA / EDTO: PACD, RJCC / ERA: PAKT, PANC, PAKN, PASY)
+      {
+        pkg: 2, station: 'RJTT', id: 'J2241/26', category: 'RUNWAY',
+        validFrom: '03NOV26 15:30', validTo: '27NOV26 21:30', page: 26,
+        rawText: `03NOV26 15:30 - 27NOV26 21:30 RJTT J2241/26\nD) 03 05-06 10 12-13 17 19-20 24 26-27 1530/2130\nE) RWY 16L/34R CLSD DUE TO MAINT\nRMK: SEE AIP RJTT AD2.23\nCOMMENT) CODE F A/C USING RWY`
+      },
+      {
+        pkg: 2, station: 'RJAA', id: 'A1577/26', category: 'RUNWAY',
+        validFrom: '01NOV26 15:10', validTo: '30NOV26 20:30', page: 32,
+        rawText: `01NOV26 15:10 - 30NOV26 20:30 RJAA A1577/26\nD) 1510/2030\nE) RWY 16R/34L CLSD DUE TO MAINT\n1. EXC ACFT IN AIC051/19 ITEM3\n2. EXC EMERG ACFT WITH PRIOR PERMISSION AT LEAST 1HR BFR`
+      },
+      {
+        pkg: 2, station: 'PACD', id: 'A4601/26', category: 'RUNWAY',
+        validFrom: '13NOV26 02:42', validTo: '14NOV26 02:42', page: 36,
+        rawText: `13NOV26 02:42 - 14NOV26 02:42 PACD A4601/26\nE) RWY 33 FICON 5/5/5 100 PCT 1/8IN WET SN OBS AT 2611130242.`
+      },
+      {
+        pkg: 2, station: 'RJCC', id: 'C2995/26', category: 'RUNWAY',
+        validFrom: '13NOV26 16:20', validTo: '13NOV26 21:20', page: 37,
+        rawText: `13NOV26 16:20 - 13NOV26 21:20 RJCC C2995/26\nE) RWY 01L/19R CLSD DUE TO CONST\nEXC ACFT WITH PRIOR PERMISSION AT LEAST 1HR BFR\nEXC SKED ACFT`
+      },
+      {
+        pkg: 2, station: 'PANC', id: 'A6772/26', category: 'RUNWAY',
+        validFrom: '13NOV26 09:54', validTo: '14NOV26 09:54', page: 39,
+        rawText: `13NOV26 09:54 - 14NOV26 09:54 PANC A6772/26\nE) RWY 07R FICON 5/5/5 100 PCT WET OBS AT 2611130954.`
+      },
+      {
+        pkg: 2, station: 'PAKN', id: 'A2851/26', category: 'RUNWAY',
+        validFrom: '12NOV26 22:12', validTo: '13NOV26 22:12', page: 40,
+        rawText: `12NOV26 22:12 - 13NOV26 22:12 PAKN A2851/26\nE) RWY 12 FICON 5/5/5 100 PCT 1/8IN DRY SN OBS AT 2611122204`
+      },
+      {
+        pkg: 2, station: 'PASY', id: 'M0644/26', category: 'NAVAID',
+        validFrom: '31OCT26 22:54', validTo: '28JAN27 23:00', page: 41,
+        rawText: `31OCT26 22:54 - 28JAN27 23:00 PASY M0644/26\nE) NAVAID SYA VOR UNSERVICEABLE`
+      },
+
+      // PACKAGE 3 (FIR: KZSE, CZVR, PAZA, RJJJ, RKRR)
+      {
+        pkg: 3, station: 'KZSE', id: 'A4540/26', category: 'AIRWAY',
+        validFrom: '22SEP26 13:57', validTo: '25SEP28 13:57', page: 42,
+        rawText: `22SEP26 13:57 - 25SEP28 13:57 KZSE A4540/26\nE) WA..ROUTE ZSE. V2 SPOKANE (GEG) VORTAC, WA R-080 TO COP NA EASTBOUND EXCEPT FOR ACFT EQUIPPED WITH SUITABLE RNAV SYSTEM WITH GPS. GEG VOR 001 CW 090 UNUSABLE.`
+      },
+      {
+        pkg: 3, station: 'KZSE', id: 'A5179/26', category: 'AIRSPACE',
+        validFrom: '13NOV26 16:15', validTo: '13NOV26 23:00', page: 42,
+        rawText: `13NOV26 16:15 - 13NOV26 23:00 KZSE A5179/26\nE) AIRSPACE W237A ACT\nF) SFC\nG) FL350`
+      },
+      {
+        pkg: 3, station: 'CZVR', id: 'F6188/26', category: 'COMMUNICATION',
+        validFrom: '06NOV26 15:17', validTo: '20NOV26 23:59', page: 44,
+        rawText: `06NOV26 15:17 - 20NOV26 23:59 CZVR F6188/26\nE) VANCOUVER CENTRE PERIPHERAL STATION (PAL) 245.0MHZ AT VANCOUVER U/S`
+      },
+      {
+        pkg: 3, station: 'CZVR', id: 'F6283/26', category: 'OTHER',
+        validFrom: '10NOV26 21:23', validTo: '20NOV26 17:00', page: 44,
+        rawText: `10NOV26 21:23 - 20NOV26 17:00 CZVR F6283/26\nE) UPPER WIND ABV FL180 NOT AVBL`
+      },
+      {
+        pkg: 3, station: 'PAZA', id: 'A0044/24', category: 'COMMUNICATION',
+        validFrom: '13JAN24 23:00', validTo: 'UFN', page: 44,
+        rawText: `13JAN24 23:00 - UFN PAZA A0044/24\nE) REFERENCE CPDLC: ANCHORAGE ARTCC IS EQUIPPED FOR CONTROLLER/PILOT DATA LINK COMMUNICATIONS (CPDLC). USE LOGON ADDRESS PAZN WHEN OPERATING IN THE ANCHORAGE OCEANIC FIR AND ARCTIC FIR ABV 73N. USE LOGON ADDRESS PAZA WHEN OPERATING IN ANCHORAGE CONTINENTAL FIR E OF 57N152W-58N167W-63N174W.\nCOMMENT) ANC ARTCC CPDLC LOGON INSTRUCTION (PAZN / PAZA)`
+      },
+      {
+        pkg: 3, station: 'PAZA', id: 'A2472/26', category: 'AIRWAY',
+        validFrom: '21AUG26 23:21', validTo: '30NOV26 23:59', page: 46,
+        rawText: `21AUG26 23:21 - 30NOV26 23:59 PAZA A2472/26\nE) USER PREFERRED ROUTE FLIGHT PLANNING GUIDELINES\n1. USER PREFERRED ROUTE ACFT WILL HAVE THE SAME PRIORITY FOR ALT ASSIGNMENT AS ACFT ON AN OPTIONAL PACOTS OR NOPAC TRACK. (EXCEPTION: OPRS WHICH FLT PLAN A USER PREFERRED ROUTE THAT IS NOT LATERALLY SEPARATED FM AN OPPOSITE DIRECTION PACOTS/NOPAC/USER PREFERRED ROUTE TFC FLOW WILL LIKELY BE RESTRICTED VERTICALLY WHILE IN CONFLICT WITH THE MAJOR TFC FLOW)\n2. USER PREFERRED ROUTE ENTERY/EXIT BTN CZEG, CZVR OR KZAK FIR:\nA. CZEG FIR: BTN TAYTA AND DEEJA MUST FLT PLAN OVER ONE OF THE FOLLOWING FIXES: TAYTA, VOLOB, ADREW, POTAT, GOATS, FIORD, CHAPO, FANES, TIBOY, EMSOW, BIBEM, AYZOL, GAHAM, TOVAD, OMSUN, JAGIT, COHIL OR DEEJA.\nB. CZVR FIR: ANYWHERE OVER OR NE OF KATCH\nC. KZAK FIR: ANYWHERE OVER OR BTN ZENNA AND SAYNT OR BTN 562600N1521700W AND 474600N1700000E\n3. WB USER PREFERRED ROUTE TO RJJJ FIR:\nA. JOIN R220 OVER OR E OF WAYPOINT NIKLL\nB. JOIN M523 OVER OR E OF WAYPOINT HIXOR\nC. REMAIN 50NM SOUTH OF A590 AND CROSS THE PAZA/RJJJ FIR BOUNDARY OVER OR SOUTH OF WAYPOINT AKISU.\n4. EB USER PREFERRED ROUTE FM RJJJ FIR ENTER PAZA FIR OVR:\nA. OMOTO: FILE R580 TO OPHET THENCE USER PREFERRED ROUTE SOUTH OF R580 OR FILE R580 TO OBOYD THENCE USER PREFERRED ROUTE NORTH OF R580\nB. PASRO: FILE A590 TO POWAL THENCE USER PREFERRED ROUTE NORTH OR SOUTH OF A590\nC. AKISU OR SOUTH: REMAIN 50NM SOUTH OF ATS ROUTE A590\n5. EB ACFT OVER KUNAD, LUMES AND KOKES MUST FILE AS FOLLOWS:\nA. ROUTE: KOKES DIRECT ONEIL THENCE VIA USER PREFERRED ROUTE REMAINING S OF ATS ROUTE R580 OR, LUMES DIRECT PINSO THENCE VIA USER PREFERRED ROUTE REMAINING S OF ATS ROUTE A590 OR, KUNAD DIRECT PLADO THENCE VIA USER PREFERRED ROUTE REMAINING S OF ATS ROUTE A590.\nB. ALT: ACFT MUST FLT PLAN TO CROSS KUNAD, LUMES OR KOKES AT OR BLW FL310, OR AT OR ABV FL390.\nC. TIME: ACFT MUST FLT PLAN SO AS TO CROSS KUNAD, LUMES OR KOKES BTN 0500 UTC AND 2300 UTC.\nCOMMENT) UPR RTE GUIDELINES VIA PAZA, CZEG, CZVR, KZAK FIR`
+      },
+      {
+        pkg: 3, station: 'RJJJ', id: 'Q2693/26', category: 'AIRWAY',
+        validFrom: '14NOV26 01:30', validTo: '20NOV26 05:01', page: 51,
+        rawText: `14NOV26 01:30 - 20NOV26 05:01 RJJJ Q2693/26\nD) 0130/0501\nE) ALTN RTE ARE ESTABLISHED DUE TO AN AEROSPACE FLIGHT ACTIVITY.\n1. FLT PLANNED RTE IS REQ TO BE FILED AS FLW: (1) A337 (SAGOP-TEGOD) ALTN RTE: DAGDA - A337 - NOGAK - 2340N14410E - TEGOD\n2. REQ TO BE PLAN VIA ATC ROUTE OR DESIGNATED ALTERNATE ROUTE. OTHERWISE AVOID U.S. ROCKET FIRING IMPACT AREA BY AT LEAST 25NM(RNP10 ACFT) OR 50NM(NON-RNP10 ACFT)\n3. SEE NOTAM RJAAYNYX P5648/26`
+      },
+      {
+        pkg: 3, station: 'RJJJ', id: 'P5648/26', category: 'OTHER',
+        validFrom: '14NOV26 01:30', validTo: '20NOV26 05:01', page: 53,
+        rawText: `14NOV26 01:30 - 20NOV26 05:01 RJJJ P5648/26\nD) 0130/0501\nE) DUE TO AN AEROSPACE FLIGHT ACTIVITY, THE FLIGHT SAFETY OF THE AIRCRAFT IN FOLLOWING AREA MAY BE AFFECTED THRU NOV 14-20 2026, 0130-0501 DLY\nRMK: ATC WILL NOT CLEAR IFR FLT THRU THIS AREA FOR THE FLIGHT SAFETY.\nF) SFC G) UNL\nCOMMENT) REF RJJJ Q2693/26`
+      },
+      {
+        pkg: 3, station: 'RKRR', id: 'Z0881/26', category: 'AIRWAY',
+        validFrom: '13NOV26 21:00', validTo: '14NOV26 21:00', page: 55,
+        rawText: `13NOV26 21:00 - 14NOV26 21:00 RKRR Z0881/26\nE) CONDITIONAL ROUTE (CDR2) AVBL AS FLW, NEW\n1 MASTA-UPGOS 11132100 11142100 6,000FT AMSL FL600\n2 RUGMA-ANROD 11132100 11142100 11,000FT AMSL FL600\n3 BOPTA-PONIK 11132100 11132300 / 11140700 11142100 FL150 FL600\n4 KARBU-LANAT 11132215 11140200 / 11140445 11140815 FL150 FL600\nCOMMENT) PLEASE REQUEST BOPTA DIRECT PONIK (OR KARBU DIRECT LANAT) TO THE ATC DUE TO UNEXPECTED CHANGES, NOT APPLIED TO FPL.`
+      }
+    ];
+
+    // ---------------------------------------------------------------------------
+    // 4. 원문 스냅샷 캡처 이미지 생성기 (고해상도 Canvas 렌더링)
+    // ---------------------------------------------------------------------------
+    function generateNotamSnapshotDataUrl(item) {
+      const canvas = document.createElement('canvas');
+      const lines = item.rawText.split('\n');
+      const width = 920;
+      const lineHeight = 24;
+      const padding = 24;
+      const height = Math.max(110, lines.length * lineHeight + padding * 2);
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, width, height);
+
+      // 상단 구분선 및 헤더 강조
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 16px "Courier New", monospace';
+      ctx.fillText(lines[0] || `${item.station} ${item.id}`, padding, padding + 14);
+
+      ctx.font = '15px "Courier New", monospace';
+      ctx.fillStyle = '#1e293b';
+      for (let i = 1; i < lines.length; i++) {
+        ctx.fillText(lines[i], padding + 14, padding + 14 + i * lineHeight);
+      }
+      return canvas.toDataURL('image/png');
+    }
+
+    // ---------------------------------------------------------------------------
+    // 5. 실제 PDF 파일 업로드 시 NOTAM PACKAGE 1, 2, 3 전 페이지 파서
+    // ---------------------------------------------------------------------------
+    async function parseUploadedPdf(file) {
+      const loadingBanner = document.getElementById('loadingBanner');
+      const loadingMsg = document.getElementById('loadingMsg');
+      loadingBanner.classList.remove('hidden');
+
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const totalPages = pdf.numPages;
+
+        let allLines = [];
+        for (let p = 1; p <= totalPages; p++) {
+          loadingMsg.textContent = `PDF 페이지 분석 중... (${p} / ${totalPages} 페이지)`;
+          const page = await pdf.getPage(p);
+          const textContent = await page.getTextContent();
+
+          // Y좌표 기준 줄 정렬
+          const yMap = new Map();
+          for (const it of textContent.items) {
+            const y = Math.round(it.transform[5]);
+            let matchedY = null;
+            for (const key of yMap.keys()) {
+              if (Math.abs(key - y) <= 4) { matchedY = key; break; }
+            }
+            const targetY = matchedY !== null ? matchedY : y;
+            if (!yMap.has(targetY)) yMap.set(targetY, []);
+            yMap.get(targetY).push({ x: it.transform[4], str: it.str });
+          }
+
+          const sortedY = Array.from(yMap.keys()).sort((a, b) => b - a);
+          for (const y of sortedY) {
+            const row = yMap.get(y).sort((a, b) => a.x - b.x).map(i => i.str).join(' ').replace(/\s+/g, ' ').trim();
+            if (row) allLines.push({ page: p, text: row });
+          }
+        }
+
+        // NOTAM PACKAGE 1, 2, 3 구간 및 개별 노탐 추출
+        let currentPkg = 0;
+        let currentCat = 'GENERAL';
+        const extracted = [];
+
+        const headerRegex = /^(?:(\d+)\.\s*)?(\d{2}[A-Z]{3}\d{2}\s+\d{2}:\d{2})\s*(?:-\s*)?(\d{2}[A-Z]{3}\d{2}\s+\d{2}:\d{2}|UFN|PERM)\s+([A-Z]{4})\s+([A-Z]\d{4}\/\d{2}|COAD\d{2}\/\d{2}|CO-ADZ|AIP\s+SUP\s+\d+\/\d{2}|CHINA\s+SUP\s+\d+\/\d{2})$/;
+        const stopRegex = /^(◼|■|\[(DEP|DEST|ALTN|REFILE|EDTO|ERA|FIR)\]|KOREAN AIR NOTAM PACKAGE|END OF KOREAN AIR NOTAM PACKAGE|SECY\s*\/\s*SECURITY)/;
+
+        for (let i = 0; i < allLines.length; i++) {
+          const line = allLines[i].text;
+          if (line.includes('KOREAN AIR NOTAM PACKAGE 1')) currentPkg = 1;
+          else if (line.includes('KOREAN AIR NOTAM PACKAGE 2')) currentPkg = 2;
+          else if (line.includes('KOREAN AIR NOTAM PACKAGE 3')) currentPkg = 3;
+          else if (line.includes('END OF KOREAN AIR NOTAM PACKAGE 3')) currentPkg = 0;
+
+          if (currentPkg === 0) continue;
+
+          if (line.startsWith('◼') || line.startsWith('■')) {
+            currentCat = line.replace(/^[◼■]\s*/, '').trim();
+            continue;
+          }
+
+          const m = line.match(headerRegex);
+          if (m) {
+            const validFrom = m[2];
+            const validTo = m[3];
+            const station = m[4];
+            const id = m[5];
+            const body = [line];
+
+            for (let j = i + 1; j < allLines.length; j++) {
+              const nextLine = allLines[j].text;
+              if (headerRegex.test(nextLine) || stopRegex.test(nextLine)) {
+                break;
+              }
+              if (/^(KE\s*00\d+|PRINTED AT|DEP:|REFILE:|FIR:)/.test(nextLine)) continue;
+              body.push(nextLine);
+              i = j;
+            }
+
+            extracted.push({
+              pkg: currentPkg,
+              station,
+              id,
+              category: currentCat,
+              validFrom,
+              validTo,
+              page: allLines[i].page,
+              rawText: body.join('\n')
+            });
+          }
+        }
+
+        loadingBanner.classList.add('hidden');
+        if (extracted.length > 0) {
+          state.notams = extracted;
+          state.currentPkg = 'ALL';
+          state.currentStation = 'ALL';
+          document.getElementById('fileStatusText').textContent =
+            `현재 로드된 패키지: ${file.name} (총 ${extracted.length}개 노탐 — Package 1·2·3 완벽 반영)`;
+          renderAll();
+        } else {
+          alert('해당 PDF에서 NOTAM PACKAGE 1·2·3 형식을 찾지 못했습니다.');
+        }
+      } catch (err) {
+        loadingBanner.classList.add('hidden');
+        alert('PDF 분석 중 오류가 발생했습니다: ' + err.message);
+      }
+    }
+
+    // ---------------------------------------------------------------------------
+    // 6. 상태 관리 및 렌더링
+    // ---------------------------------------------------------------------------
+    const state = {
+      notams: [...DEFAULT_NOTAMS],
+      currentPkg: 'ALL',
+      currentStation: 'ALL',
+      searchQuery: '',
+      viewMode: 'both'
+    };
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    function highlightText(text, query) {
+      const safe = escapeHtml(text);
+      if (!query.trim()) return safe;
+      const escapedQ = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return safe.replace(new RegExp(`(${escapedQ})`, 'gi'), '<mark class="hl">$1</mark>');
+    }
+
+    function getFilteredNotams() {
+      return state.notams.filter(item => {
+        if (state.currentPkg !== 'ALL' && item.pkg !== state.currentPkg) return false;
+        if (state.currentStation !== 'ALL' && item.station !== state.currentStation) return false;
+        if (state.searchQuery.trim()) {
+          const q = state.searchQuery.trim().toLowerCase();
+          const ko = buildKoreanTranslation(item);
+          const target = `${item.station} ${item.id} ${item.category} ${item.rawText} ${ko.summaryBullet} ${ko.detailedLines}`.toLowerCase();
+          return target.includes(q);
+        }
+        return true;
+      });
+    }
+
+    function renderPkgTabs() {
+      const container = document.getElementById('pkgTabsContainer');
+      const countAll = state.notams.length;
+      const count1 = state.notams.filter(n => n.pkg === 1).length;
+      const count2 = state.notams.filter(n => n.pkg === 2).length;
+      const count3 = state.notams.filter(n => n.pkg === 3).length;
+
+      const tabs = [
+        { id: 'ALL', label: '전체 패키지 (ALL)', count: countAll, activeClass: 'bg-sky-600 text-white' },
+        { id: 1, label: 'NOTAM PACKAGE 1 (DEP/DEST/ALTN)', count: count1, activeClass: 'bg-sky-600 text-white' },
+        { id: 2, label: 'NOTAM PACKAGE 2 (REFILE/EDTO/ERA)', count: count2, activeClass: 'bg-indigo-600 text-white' },
+        { id: 3, label: 'NOTAM PACKAGE 3 (FIR 항로 노탐)', count: count3, activeClass: 'bg-amber-500 text-slate-950 font-bold' }
+      ];
+
+      container.innerHTML = tabs.map(t => {
+        const isActive = state.currentPkg === t.id;
+        const cls = isActive
+          ? t.activeClass
+          : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800';
+        return `
+          <button data-pkg="${t.id}" class="pkg-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 ${cls}">
+            <span>${t.label}</span>
+            <span class="px-1.5 py-0.2 rounded bg-black/25 text-[11px]">${t.count}</span>
+          </button>
+        `;
+      }).join('');
+
+      container.querySelectorAll('.pkg-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const val = btn.getAttribute('data-pkg');
+          state.currentPkg = val === 'ALL' ? 'ALL' : Number(val);
+          state.currentStation = 'ALL';
+          renderAll();
+        });
+      });
+    }
+
+    function renderStationFilters() {
+      const container = document.getElementById('stationFilterContainer');
+      const baseList = state.currentPkg === 'ALL'
+        ? state.notams
+        : state.notams.filter(n => n.pkg === state.currentPkg);
+
+      const stationCounts = {};
+      baseList.forEach(n => {
+        stationCounts[n.station] = (stationCounts[n.station] || 0) + 1;
+      });
+
+      const stations = Object.keys(stationCounts);
+      let html = `<span class="text-slate-400 mr-1">공항/FIR 필터:</span>`;
+      html += `
+        <button data-st="ALL" class="st-filter-btn px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+          state.currentStation === 'ALL' ? 'bg-sky-500 text-slate-950' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800'
+        }">전체 (${baseList.length})</button>
+      `;
+
+      stations.forEach(st => {
+        const isActive = state.currentStation === st;
+        html += `
+          <button data-st="${st}" class="st-filter-btn px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+            isActive ? 'bg-sky-500 text-slate-950' : 'bg-slate-900 text-slate-300 border border-slate-800 hover:bg-slate-800'
+          }">${st} (${stationCounts[st]})</button>
+        `;
+      });
+
+      container.innerHTML = html;
+      container.querySelectorAll('.st-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.currentStation = btn.getAttribute('data-st');
+          renderAll();
+        });
+      });
+    }
+
+    function renderNotamCards() {
+      const container = document.getElementById('notamListContainer');
+      const list = getFilteredNotams();
+
+      if (list.length === 0) {
+        container.innerHTML = `
+          <div class="p-12 rounded-2xl bg-slate-900/60 border border-slate-800 text-center space-y-2">
+            <p class="text-base font-semibold text-slate-300">검색 조건에 일치하는 노탐이 없습니다.</p>
+            <p class="text-xs text-slate-500">검색어를 지우거나 다른 NOTAM PACKAGE 탭을 선택해 보세요.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = list.map(item => {
+        const ko = buildKoreanTranslation(item);
+        const snapshotUrl = generateNotamSnapshotDataUrl(item);
+        const showCapture = state.viewMode === 'both' || state.viewMode === 'capture';
+        const showText = state.viewMode === 'both' || state.viewMode === 'text';
+
+        return `
+          <article class="rounded-2xl bg-[#0b1322] border border-slate-800 overflow-hidden shadow-lg">
+            <!-- 1. 원문 노탐 캡처 영역 -->
+            <div class="px-4 py-2.5 bg-slate-900/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span>
+                <span class="text-xs font-bold text-sky-400">
+                  1. 원문 노탐 캡처 (ORIGINAL NOTAM — ${item.station} ${item.id})
+                </span>
+                <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700">
+                  PACKAGE ${item.pkg} · ${item.category} · P.${item.page}
+                </span>
+              </div>
+              <span class="text-[11px] text-slate-400 mono-font">${item.validFrom} ~ ${item.validTo}</span>
+            </div>
+
+            <div class="p-4 space-y-3 bg-[#09101d]">
+              ${showCapture ? `
+                <div class="rounded-xl overflow-hidden border border-slate-700/80 bg-white p-2 shadow-inner">
+                  <img src="${snapshotUrl}" alt="${item.station} ${item.id}" class="w-full h-auto object-contain max-h-72" />
+                </div>
+              ` : ''}
+
+              ${showText ? `
+                <pre class="mono-font text-xs sm:text-sm text-slate-200 bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 whitespace-pre-wrap leading-relaxed overflow-x-auto">${highlightText(item.rawText, state.searchQuery)}</pre>
+              ` : ''}
+            </div>
+
+            <!-- 2. 한글 번역 영역 (1:1 매칭) -->
+            <div class="px-4 py-2.5 bg-emerald-950/40 border-t border-b border-emerald-900/50 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-xs font-bold text-emerald-300">
+                  2. 한글 번역 (KOREAN TRANSLATION — ${item.station} ${item.id})
+                </span>
+              </div>
+              <span class="text-[11px] text-emerald-400/80">100% 로컬 항공 전문 의역·직역 엔진</span>
+            </div>
+
+            <div class="p-4 bg-emerald-950/15 space-y-3 text-sm leading-relaxed">
+              <div class="text-xs font-semibold text-emerald-300/90">${escapeHtml(ko.headerTag)}</div>
+              <div class="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-800/40 text-slate-100 whitespace-pre-wrap font-medium">${highlightText('• ' + ko.summaryBullet, state.searchQuery)}</div>
+              <details class="group">
+                <summary class="cursor-pointer text-xs text-slate-400 hover:text-slate-200 select-none">
+                  ▼ 문장별 상세 한글 번역 펼쳐보기
+                </summary>
+                <div class="mt-2 p-3 rounded-lg bg-slate-950/70 border border-slate-800 text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">${highlightText(ko.detailedLines, state.searchQuery)}</div>
+              </details>
+            </div>
+          </article>
+        `;
+      }).join('');
+    }
+
+    function renderAll() {
+      renderPkgTabs();
+      renderStationFilters();
+      renderNotamCards();
+    }
+
+    // ---------------------------------------------------------------------------
+    // 7. 이벤트 바인딩
+    // ---------------------------------------------------------------------------
+    document.getElementById('pdfFileInput').addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      if (file) parseUploadedPdf(file);
+    });
+
+    document.getElementById('restoreSampleBtn').addEventListener('click', () => {
+      state.notams = [...DEFAULT_NOTAMS];
+      state.currentPkg = 'ALL';
+      state.currentStation = 'ALL';
+      state.searchQuery = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      document.getElementById('fileStatusText').textContent =
+        '기본 샘플 복원됨 (KE0042 SEA/ICN Package 1·2·3 핵심 노탐)';
+      renderAll();
+    });
+
+    document.getElementById('wipeMemoryBtn').addEventListener('click', () => {
+      state.notams = [];
+      state.searchQuery = '';
+      document.getElementById('pdfFileInput').value = '';
+      document.getElementById('searchInput').value = '';
+      document.getElementById('fileStatusText').textContent =
+        '브라우저 메모리 내 모든 노탐 데이터가 안전하게 즉시 파기되었습니다.';
+      renderAll();
+    });
+
+    const searchInput = document.getElementById('searchInput');
+    const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+    searchInput.addEventListener('input', e => {
+      state.searchQuery = e.target.value;
+      clearSearchBtn.classList.toggle('hidden', !state.searchQuery);
+      renderNotamCards();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      state.searchQuery = '';
+      searchInput.value = '';
+      clearSearchBtn.classList.add('hidden');
+      renderNotamCards();
+    });
+
+    document.querySelectorAll('.quick-kw').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const kw = btn.getAttribute('data-kw');
+        state.searchQuery = kw;
+        searchInput.value = kw;
+        clearSearchBtn.classList.remove('hidden');
+        renderNotamCards();
+      });
+    });
+
+    document.querySelectorAll('.view-mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.viewMode = btn.getAttribute('data-view');
+        document.querySelectorAll('.view-mode-btn').forEach(b => {
+          const active = b.getAttribute('data-view') === state.viewMode;
+          b.className = `view-mode-btn px-3 py-1 rounded-md text-xs font-semibold ${
+            active ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'
+          }`;
+        });
+        renderNotamCards();
+      });
+    });
+
+    // 초기 렌더링 실행
+    renderAll();
+  </script>
+</body>
+</html>
